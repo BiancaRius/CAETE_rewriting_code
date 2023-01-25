@@ -16,10 +16,11 @@ module establishment
 
 
 implicit none
- 
+
 private
 
 public :: establish, shrink, sapling_allometry
+
 
 contains
 
@@ -56,7 +57,6 @@ contains
         est_pls = max(est * (1. - FPC_total_perc),0.)     
           
     end subroutine establish
-
 
     subroutine sapling_allometry(cleaf_sapl, csap_sapl, cheart_sapl,croot_sapl)
 
@@ -97,11 +97,10 @@ contains
         croot_sapl = (1. / lmtorm_sapl) * cleaf_sapl
              
 
-    end subroutine
-
-
+    end subroutine sapling_allometry
+    
     subroutine shrink(csap_old, cleaf_old, cheart_old, croot_old,&
-                      est_pls, dens_old, csap_sapl, cleaf_sapl, cheart_sapl, croot_sapl,&
+                      est_pls, dens_old,&
                       csap_new, cleaf_new, cheart_new, croot_new, cwood_new, dens_new) !calculates new densities after the application of shrink process 
                                                                              !(shrink of avg individual for carbon balance -- need to be applied because 
                                                                              !of the saplings establishment)
@@ -120,13 +119,6 @@ contains
         real(r_8), intent(in) :: cheart_old !heartwood
         real(r_8), intent(in) :: croot_old  !fine roots
         
-        !Carbon content on plant compartments in saplings (gC) - calculated on sapling_allometry subroutine
-        real(r_8), intent(in) :: csap_sapl   !sapwood
-        real(r_8), intent(in) :: cleaf_sapl  !leaves
-        real(r_8), intent(in) :: cheart_sapl !heartwood
-        real(r_8), intent(in) :: croot_sapl  !fine roots
-        
-
        
         !VARIABLES [OUTPUT]  
 
@@ -139,7 +131,11 @@ contains
 
         real(r_8), intent(out) :: dens_new !PLS density (number of individuals/m2) after the establishment of saplings
 
-        !Local Variables
+        !Carbon content on plant compartments in saplings (gC) - calculated on sapling_allometry subroutine
+        real(r_8) :: csap_sapl   !sapwood
+        real(r_8) :: cleaf_sapl  !leaves
+        real(r_8) :: cheart_sapl !heartwood
+        real(r_8) :: croot_sapl  !fine roots
         
      
         ! !initializing variables
@@ -153,6 +149,9 @@ contains
         
         dens_new = dens_old + est_pls
 
+        call sapling_allometry(cleaf_sapl, csap_sapl, cheart_sapl,croot_sapl)
+
+
 
         !Equations from Sitch et al., 2003
         csap_new   = ((csap_old * dens_old) + (csap_sapl * est_pls)) / dens_new !temporary since part of it goes to heartwood
@@ -165,10 +164,11 @@ contains
 
         cwood_new  = cheart_new + csap_new
 
+        print*, csap_new
+
 
             
     end subroutine shrink
-
 
 
 end module establishment

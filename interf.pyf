@@ -25,20 +25,23 @@ python module module_006 ! in
             real(kind=8), public,parameter,optional :: latosa=8000.0d0
             real(kind=8), public,parameter,optional :: reinickerp=1.6d0
             real(kind=8), public,parameter,optional :: ltor=0.77302587552347657d0
-            real(kind=8), optional :: klatosa_sapl=8000.0d0
-            real(kind=8), optional :: k_allom1_sapl=100.0d0
-            real(kind=8), optional :: k_allom2_sapl=40.0d0
-            real(kind=8), optional :: k_allom3_sapl=0.50d0
-            real(kind=8), optional :: x_sapl=3.0
-            real(kind=8), optional :: reinickerp_sapl=1.60d0
-            real(kind=8), optional :: lai_sapl=4.0d0
-            real(kind=8), optional :: sla_sapl=0.021
-            real(kind=8), optional :: dwood_sapl=200000.0
-            real(kind=8), optional :: lmtorm_sapl=1.0d0
+            real(kind=8), public,parameter,optional :: klatosa_sapl=8000.0d0
+            real(kind=8), public,parameter,optional :: k_allom1_sapl=100.0d0
+            real(kind=8), public,parameter,optional :: k_allom2_sapl=40.0d0
+            real(kind=8), public,parameter,optional :: k_allom3_sapl=0.50d0
+            real(kind=8), public,parameter,optional :: x_sapl=3.0
+            real(kind=8), public,parameter,optional :: reinickerp_sapl=1.60d0
+            real(kind=8), public,parameter,optional :: lai_sapl=4.0d0
+            real(kind=8), public,parameter,optional :: sla_sapl=0.021
+            real(kind=8), public,parameter,optional :: dwood_sapl=200000.0
+            real(kind=8), public,parameter,optional :: lmtorm_sapl=1.0d0
             real(kind=8), public,parameter,optional :: est_max=0.24d0
             real(kind=8), public,parameter,optional :: p1=-5.0d0
             real(kind=8), public,parameter,optional :: gc_area=10000.0d0
-            real(kind=8), public,parameter,optional :: gc_area_95=9500.0d0
+            real(kind=8), public,parameter,optional,depend(gc_area) :: gc_area_95=gc_area*0.95
+            real(kind=8), public,parameter,optional :: leaf_alloc_init=0.40d0
+            real(kind=8), public,parameter,optional :: root_alloc_init=0.30d0
+            real(kind=8), public,parameter,optional :: wood_alloc_init=0.30d0
         end module params
         module establishment ! in :module_006:mod_establishment.f90
             use types
@@ -54,17 +57,13 @@ python module module_006 ! in
                 real(kind=8) intent(out) :: cheart_sapl
                 real(kind=8) intent(out) :: croot_sapl
             end subroutine sapling_allometry
-            subroutine shrink(csap_old,cleaf_old,cheart_old,croot_old,est_pls,dens_old,csap_sapl,cleaf_sapl,cheart_sapl,croot_sapl,csap_new,cleaf_new,cheart_new,croot_new,cwood_new,dens_new) ! in :module_006:mod_establishment.f90:establishment
+            subroutine shrink(csap_old,cleaf_old,cheart_old,croot_old,est_pls,dens_old,csap_new,cleaf_new,cheart_new,croot_new,cwood_new,dens_new) ! in :module_006:mod_establishment.f90:establishment
                 real(kind=8) intent(in) :: csap_old
                 real(kind=8) intent(in) :: cleaf_old
                 real(kind=8) intent(in) :: cheart_old
                 real(kind=8) intent(in) :: croot_old
                 real(kind=8) intent(in) :: est_pls
                 real(kind=8) intent(in) :: dens_old
-                real(kind=8) intent(in) :: csap_sapl
-                real(kind=8) intent(in) :: cleaf_sapl
-                real(kind=8) intent(in) :: cheart_sapl
-                real(kind=8) intent(in) :: croot_sapl
                 real(kind=8) intent(out) :: csap_new
                 real(kind=8) intent(out) :: cleaf_new
                 real(kind=8) intent(out) :: cheart_new
@@ -76,6 +75,23 @@ python module module_006 ! in
         module fpc ! in :module_006:mod_FPC.f90
             use types
             use params
+            use establishment
+            subroutine gc_occupation(dens_pls,fpc_total_gc,fpc_ind,fpc_pls) ! in :module_006:mod_FPC.f90:fpc
+                real(kind=8) intent(in) :: dens_pls
+                real(kind=8) intent(out) :: fpc_total_gc
+                real(kind=8) intent(out) :: fpc_ind
+                real(kind=8) intent(out) :: fpc_pls
+            end subroutine gc_occupation
+            subroutine exc_area(fpc_total_gc,fpc_pls,exc_area_gc,nind_kill_fpc) ! in :module_006:mod_FPC.f90:fpc
+                real(kind=8) intent(in) :: fpc_total_gc
+                real(kind=8) intent(in) :: fpc_pls
+                real(kind=8) intent(out) :: exc_area_gc
+                real(kind=8) intent(out) :: nind_kill_fpc
+            end subroutine exc_area
+            subroutine mortality(nind_kill_fpc,z2) ! in :module_006:mod_FPC.f90:fpc
+                real(kind=8) intent(in) :: nind_kill_fpc
+                real(kind=8) intent(out) :: z2
+            end subroutine mortality
         end module fpc
     end interface 
 end python module module_006

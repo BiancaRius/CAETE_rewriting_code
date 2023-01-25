@@ -18,6 +18,8 @@ module FPC
 
     use types
     use params
+    use establishment
+    
 
 implicit none
 
@@ -27,9 +29,9 @@ public :: gc_occupation
 
 contains
 
-    subroutine gc_occupation(x1, FPC_total_gc, FPC_ind, FPC_pls)
+    subroutine gc_occupation(dens_pls, FPC_total_gc, FPC_ind, FPC_pls)
         !VARIABLE INPUTS
-        real(r_8), intent(in) :: x1
+        real(r_8), intent(in) :: dens_pls
         
         !VARIABLES OUTPUTS 
         real(r_8), intent(out) :: FPC_total_gc !(m2) total FPC in a grid cell considering all PLS
@@ -45,14 +47,13 @@ contains
         real(r_8) :: height_pls
 
         !gc occupation variables
-        real(r_8) :: dens_pls
         real(r_8) :: exc_area_gc
         
 
         !mortality variables
         real(r_8) :: nind_kill_FPC
         real(r_8) :: z2
-
+        
         !initializing variables
         FPC_total_gc = 0.0D0
         FPC_ind = 0.0D0
@@ -70,7 +71,7 @@ contains
         height_pls = 100.
 
     !dens is an input or output?
-        dens_pls = 100.    
+            
 
     !------------------------------------------------------------------------------
     !---------------------------------------------------------------------------
@@ -83,7 +84,7 @@ contains
 !!!!!!!!!!!!!!!!!!calculo FPC_total_gc é feito a partir do acúmulo de todos os PLS.
         !!!!!!!!!!por enquanto trabalhando com 1
 
-        FPC_total_gc = 10000000.
+        FPC_total_gc = 1000.
 
     !Verify if total FPC is gt or lt 95% of grid cell area
         if (FPC_total_gc.gt.gc_area_95) then
@@ -94,7 +95,11 @@ contains
 
         else
 
+            !call establish(npls_alive, FPC_total_gc, est_pls)
             !call subroutine of establishment (only the c final?)
+            !call establishment
+
+            !call shrink
             print*, 'lt'
         
         endif
