@@ -1,0 +1,59 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module module_006 ! in 
+    interface  ! in :module_006
+        module types ! in :module_006:types.f90
+            integer, public,parameter,optional :: l_1=2
+            integer, public,parameter,optional :: i_2=2
+            integer, public,parameter,optional :: i_4=4
+            integer, public,parameter,optional :: r_4=4
+            integer, public,parameter,optional :: r_8=8
+        end module types
+        module allometric_params ! in :module_006:types.f90
+            use types
+            real(kind=8), public,parameter,optional :: grid_area=1000.0d0
+            real(kind=8), public,parameter,optional :: pi=3.14159265d0
+            real(kind=8), public,parameter,optional :: xacc=0.1d0
+            real(kind=8), public,parameter,optional :: yacc=1.0d-10
+            integer(kind=4), public,parameter,optional :: nseg=20
+            integer(kind=4), public,parameter,optional :: time=1000
+            integer(kind=4), public,parameter,optional :: ntl=365
+            real(kind=8), public,parameter,optional :: allom1=100.d0
+            real(kind=8), public,parameter,optional :: allom2=40.0d0
+            real(kind=8), public,parameter,optional :: allom3=0.5d0
+            real(kind=8), public,parameter,optional :: latosa=8000.0d0
+            real(kind=8), public,parameter,optional :: reinickerp=1.6d0
+            real(kind=8), public,parameter,optional :: ltor=0.77302587552347657d0
+        end module allometric_params
+        module allocation ! in :module_006:allocation.f90
+            use types
+            use allometric_params
+            subroutine allocate(lm,hm,sm,rm,dwood,sla,nind,bminc_ind,height,cl_inc,cw_inc,ch_inc,cs_inc,cr_inc,ctotal_inc,lm_2,ch_2,cs_2,rm_2,cw_2) ! in :module_006:allocation.f90:allocation
+                real(kind=8) intent(in) :: lm
+                real(kind=8) intent(in) :: hm
+                real(kind=8) intent(in) :: sm
+                real(kind=8) intent(in) :: rm
+                real(kind=8) intent(in) :: dwood
+                real(kind=8) intent(in) :: sla
+                real(kind=8) intent(in) :: nind
+                real(kind=8) intent(in) :: bminc_ind
+                real(kind=8) intent(in) :: height
+                real(kind=8) intent(out) :: cl_inc
+                real(kind=8) intent(out) :: cw_inc
+                real(kind=8) intent(out) :: ch_inc
+                real(kind=8) intent(out) :: cs_inc
+                real(kind=8) intent(out) :: cr_inc
+                real(kind=8) intent(out) :: ctotal_inc
+                real(kind=8) intent(out) :: lm_2
+                real(kind=8) intent(out) :: ch_2
+                real(kind=8) intent(out) :: cs_2
+                real(kind=8) intent(out) :: rm_2
+                real(kind=8) intent(out) :: cw_2
+            end subroutine allocate
+        end module allocation
+    end interface 
+end python module module_006
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
