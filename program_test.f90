@@ -52,7 +52,7 @@ program test2
 
         ! print*, csap_new2,cleaf_new2,cheart_new2, croot_new2, cwood_new2
 
-        !update variables
+        !update variables dfh
 
         
 
