@@ -29,10 +29,11 @@ public :: gc_occupation
 
 contains
 
-    subroutine gc_occupation(dens_pls, FPC_total_gc, FPC_ind, FPC_pls)
+    subroutine gc_occupation(dens_pls_old, cleaf_pls_old, FPC_total_gc, FPC_ind, FPC_pls)
         !VARIABLE INPUTS
-        real(r_8), intent(in) :: dens_pls
-        
+        real(r_8), intent(in) :: dens_pls_old  !density (ind/m2) previous the mortality
+        real(r_8), intent(in) :: cleaf_pls_old !carbon in leaf (kgC/m2) previous the mortality
+
         !VARIABLES OUTPUTS 
         real(r_8), intent(out) :: FPC_total_gc !(m2) total FPC in a grid cell considering all PLS
         real(r_8), intent(out) :: FPC_ind !(m2)avg individual FPC
@@ -51,18 +52,16 @@ contains
         !gc occupation variables
         real(r_8) :: exc_area_gc
         
-
-        !mortality variables
         real(r_8) :: nind_kill_FPC !number of avg ind. that will die due to (ind/m2) excedent area occupation
         real(r_8) :: z2
         real(r_8) :: carbon_increment !carbon increment from a time step to the next (gC)
-        real(r_8) :: cleaf
+        real(r_8) :: cleaf_total_pls !(gC) total C in leaf for each pls considering the density
         real(r_8) :: csapwood
         real(r_8) :: cheartwood
         real(r_8) :: croot
         real(r_8) :: spec_leaf
         real(r_8) :: wood_density
-        real(r_8) :: dens_ind
+        
 
         !initializing variables
         FPC_total_gc = 0.0D0
@@ -73,6 +72,7 @@ contains
         lai_pls = 0.0D0
         height_pls = 0.0D0
         nind_kill_FPC = 0.0D0
+        cleaf_total_pls = 0.0D0
 
     !!!!!POSSIBLE INPUTS
         diam_pls = 100.
@@ -80,26 +80,29 @@ contains
         lai_pls = 100.
         height_pls = 100.
         carbon_increment = 10.
-        cleaf = 10.
         csapwood = 10.
         cheartwood = 100.
         croot = 10.
         spec_leaf = 10.
         wood_density = 10.
-        dens_ind = 10.           
 
-    !------------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
+    !__________________________________
+    !Calculating total C for compartments considering density (gC)
+    ! (*1000) transforms from kgC to gC
+        
+        cleaf_total_pls = (cleaf_pls_old * 1000.) / dens_pls_old
+
+    !__________________________________
     !Calculating Foliage Projective Cover of average individual(FPC_ind) and Fractional
     !Projective cover for PLS (FPC_pls2)
         FPC_ind = (1 - (exp (-0.5 * lai_pls)))
     
-        FPC_pls = (crown_area_pls * dens_pls) * FPC_ind 
+        FPC_pls = (crown_area_pls * dens_pls_old) * FPC_ind 
         
 !!!!!!!!!!!!!!!!!!calculo FPC_total_gc é feito a partir do acúmulo de todos os PLS.
         !!!!!!!!!!por enquanto trabalhando com 1
 
-        FPC_total_gc = 1000.
+        FPC_total_gc = 100000.
 
         npls_alive = 10.
 
@@ -119,8 +122,8 @@ contains
         endif
 
     !calculates mortality due to gc occupation, greff, and wood density
-        call mortality(nind_kill_FPC, carbon_increment, cleaf, spec_leaf,&
-            wood_density, dens_ind, z2)
+        call mortality(nind_kill_FPC, carbon_increment, cleaf_total_pls, spec_leaf,&
+            wood_density, dens_pls_old, z2)
 
     end subroutine gc_occupation
 
@@ -159,18 +162,18 @@ contains
 
     end subroutine exc_area
 
-    subroutine mortality(nind_kill_FPC,carbon_increment,cleaf, spec_leaf,&
-        wood_density, dens_ind, z2)
+    subroutine mortality(nind_kill_FPC,carbon_increment,cleaf_total_pls, spec_leaf,&
+        wood_density, dens_pls_old, z2)
         !calculates mortality (due to gc occupation, greff, and wood density) and
         !carbon loss due to residence time
 
         !VARIABLES INPUTS
         real(r_8), intent(in) :: nind_kill_FPC !number of avg ind. (ind/m2 that will die due to excedent area occupation
         real(r_8), intent(in) :: carbon_increment !carbon increment from a time step to the next (gC)
-        real(r_8), intent(in) :: cleaf !Cleaf before mortality
+        real(r_8), intent(in) :: cleaf_total_pls !Cleaf before mortality
         real(r_8), intent(in) :: spec_leaf !specific leaf area (m2/gC)
         real(r_8), intent(in) :: wood_density !gC/m3 - wood density
-        real(r_8), intent(in) :: dens_ind
+        real(r_8), intent(in) :: dens_pls_old
 
         !VARIABLES OUTPUTS
         real(r_8), intent(out) :: z2
@@ -195,13 +198,13 @@ contains
 
         ! print*, nind_kill_FPC
 
-        greff_pls = carbon_increment / cleaf * spec_leaf 
+        greff_pls = carbon_increment / cleaf_total_pls * spec_leaf 
 
         mort_wd = exp( -2.66 + (0.255 / wood_density)) 
 
         mort_greff = mort_wd / (1 + k_mort2 * greff_pls)
                     
-        nind_kill_greff = dens_ind * mort_greff !valores absolutos de ind.
+        nind_kill_greff = dens_pls_old * mort_greff !valores absolutos de ind.
         !             ! print*, 'NIND_KILL', nind_kill_greff(j,k)
 
         !summing nind_kill

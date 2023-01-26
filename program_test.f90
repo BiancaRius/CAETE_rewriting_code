@@ -11,31 +11,32 @@ program test2
     real(r_8) :: FPC_total_gc2
     real(r_8) :: FPC_ind2
     real(r_8) :: FPC_pls2
-    real(r_8) :: npls_alive2 = 1.0D0
+    
+    !!!!!!! ALIVE PLSs
+    ! real(r_8) :: npls_alive2 = 1.0D0
 
-    real(r_8) :: csap_new2
-    real(r_8) :: cleaf_new2
-    real(r_8) :: cheart_new2
-    real(r_8) :: croot_new2
-    real(r_8) :: cwood_new2
-    real(r_8) :: dens_new2
 
-    real(r_8) :: csap_sapl2   
-    real(r_8) :: cleaf_sapl2
-    real(r_8) :: cheart_sapl2
-    real(r_8) :: croot_sapl2
+    !C that enters in the logic (kgC/m2) for each PLS
+    real(r_8) :: cleaf_pls_in  =1.0D0
+    real(r_8) :: csap_pls_in   =1.0D0
+    real(r_8) :: cheart_pls_in =10.0D0
+    real(r_8) :: croot_pls_in  =1.0D0
 
-    real(r_8) :: csap_old2 =1.0D0
-    real(r_8) :: cleaf_old2=1.0D0
-    real(r_8) :: cheart_old2=1.0D0
-    real(r_8) :: croot_old2=1.0D0
-    real(r_8) :: dens_old2=1.0D0
+    !density that enters in the logic (ind/m2) for each PLS
+    real(r_8) :: dens_pls_in = 10. 
+    
+    !C that is an output from the logic (kgC/m2) for each PLS
+    real(r_8) :: cleaf_pls_out  
+    real(r_8) :: csap_pls_out   
+    real(r_8) :: cheart_pls_out 
+    real(r_8) :: croot_pls_out  
 
-    real(r_8) :: dens_pls2 = 100.
+    !density that is an output from the logic (ind/m2) for each PLS
+    real(r_8) :: dens_pls_out
     
    
 
-        call gc_occupation(dens_pls2,FPC_total_gc2, FPC_ind2, FPC_pls2)
+        call gc_occupation(dens_pls_in,cleaf_pls_in,FPC_total_gc2, FPC_ind2, FPC_pls2)
     
         ! call establish(npls_alive2,FPC_total_gc2,est_pls2)
 
