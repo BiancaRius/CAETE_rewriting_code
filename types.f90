@@ -67,4 +67,7 @@ module params
     real(r_8),parameter,public :: leaf_alloc_init = 0.40D0
     real(r_8),parameter,public :: root_alloc_init = 0.30D0
     real(r_8),parameter,public :: wood_alloc_init = 0.30D0
+
+    !mortality parameters
+    real(r_8),parameter,public :: k_mort2 = 0.50D0
 end module params

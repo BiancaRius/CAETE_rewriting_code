@@ -54,7 +54,8 @@ contains
         
         est = est_max * (1. - exp(p1 * (1-FPC_total_perc)) / npls_alive) !no need to declare est_max 
 
-        est_pls = max(est * (1. - FPC_total_perc),0.)     
+        est_pls = max(est * (1. - FPC_total_perc),0.)
+
           
     end subroutine establish
 
@@ -164,7 +165,7 @@ contains
 
         cwood_new  = cheart_new + csap_new
 
-        print*, csap_new
+        ! print*, csap_new
 
 
             

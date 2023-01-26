@@ -45,15 +45,25 @@ contains
         real(r_8) :: crown_area_pls
         real(r_8) :: lai_pls
         real(r_8) :: height_pls
+        real(r_8) :: npls_alive
+        real(r_8) :: est_pls
 
         !gc occupation variables
         real(r_8) :: exc_area_gc
         
 
         !mortality variables
-        real(r_8) :: nind_kill_FPC
+        real(r_8) :: nind_kill_FPC !number of avg ind. that will die due to (ind/m2) excedent area occupation
         real(r_8) :: z2
-        
+        real(r_8) :: carbon_increment !carbon increment from a time step to the next (gC)
+        real(r_8) :: cleaf
+        real(r_8) :: csapwood
+        real(r_8) :: cheartwood
+        real(r_8) :: croot
+        real(r_8) :: spec_leaf
+        real(r_8) :: wood_density
+        real(r_8) :: dens_ind
+
         !initializing variables
         FPC_total_gc = 0.0D0
         FPC_ind = 0.0D0
@@ -64,14 +74,19 @@ contains
         height_pls = 0.0D0
         nind_kill_FPC = 0.0D0
 
-    !Structuring PLSs [diameter, crown area, leaf area index and height]
+    !!!!!POSSIBLE INPUTS
         diam_pls = 100.
         crown_area_pls = 100. 
         lai_pls = 100.
         height_pls = 100.
-
-    !dens is an input or output?
-            
+        carbon_increment = 10.
+        cleaf = 10.
+        csapwood = 10.
+        cheartwood = 100.
+        croot = 10.
+        spec_leaf = 10.
+        wood_density = 10.
+        dens_ind = 10.           
 
     !------------------------------------------------------------------------------
     !---------------------------------------------------------------------------
@@ -86,6 +101,8 @@ contains
 
         FPC_total_gc = 1000.
 
+        npls_alive = 10.
+
     !Verify if total FPC is gt or lt 95% of grid cell area
         if (FPC_total_gc.gt.gc_area_95) then
             print*, 'gt'
@@ -94,18 +111,16 @@ contains
             ! print*, exc_area_gc
 
         else
+            call establish(npls_alive,FPC_total_gc,est_pls)
 
-            !call establish(npls_alive, FPC_total_gc, est_pls)
-            !call subroutine of establishment (only the c final?)
-            !call establishment
-
-            !call shrink
-            print*, 'lt'
+            !CALL SHRINK
+            print*, 'lt', est_pls
         
         endif
 
     !calculates mortality due to gc occupation, greff, and wood density
-        call mortality(nind_kill_FPC,z2)
+        call mortality(nind_kill_FPC, carbon_increment, cleaf, spec_leaf,&
+            wood_density, dens_ind, z2)
 
     end subroutine gc_occupation
 
@@ -144,38 +159,53 @@ contains
 
     end subroutine exc_area
 
-    subroutine mortality(nind_kill_FPC, z2)
+    subroutine mortality(nind_kill_FPC,carbon_increment,cleaf, spec_leaf,&
+        wood_density, dens_ind, z2)
         !calculates mortality (due to gc occupation, greff, and wood density) and
         !carbon loss due to residence time
 
         !VARIABLES INPUTS
-        real(r_8), intent(in) :: nind_kill_FPC
+        real(r_8), intent(in) :: nind_kill_FPC !number of avg ind. (ind/m2 that will die due to excedent area occupation
+        real(r_8), intent(in) :: carbon_increment !carbon increment from a time step to the next (gC)
+        real(r_8), intent(in) :: cleaf !Cleaf before mortality
+        real(r_8), intent(in) :: spec_leaf !specific leaf area (m2/gC)
+        real(r_8), intent(in) :: wood_density !gC/m3 - wood density
+        real(r_8), intent(in) :: dens_ind
 
         !VARIABLES OUTPUTS
         real(r_8), intent(out) :: z2
 
         !INTERNAL VARIABLES
         ! real(r_8) :: nind_kill_FPC
+        real(r_8) :: greff_pls !growth efficiency in m2/gC for each PLS
+        real(r_8) :: mort_wd   !mortality by wood density (from Sakschewski et al 2015)
+        real(r_8) :: mort_greff !mortality by growth efficiency
+        real(r_8) :: nind_kill_greff !!number of avg ind. (ind/m2) that will die due to growthn efficiency
+        real(r_8) :: nind_kill_total !total number of avg ind that will die (ind/m2)
 
         !initializing variables
         z2 = 0.0D0
+        greff_pls = 0.0D0
+        mort_wd = 0.0D0
+        mort_greff = 0.0D0
+        nind_kill_greff = 0.0D0
+        nind_kill_total = 0.0D0
 
         z2 = 2.**1.
 
-        print*, nind_kill_FPC
+        ! print*, nind_kill_FPC
 
-        ! greff_pls = carbon_increment(j,k)/(cl2(j,k)*spec_leaf(j,k)) !growth efficiency in m2/gC
+        greff_pls = carbon_increment / cleaf * spec_leaf 
 
-        ! mort_wd = exp(-2.66+(0.255/dwood(j,k))) !mort by wd (from Sakschewski et al 2015)
+        mort_wd = exp( -2.66 + (0.255 / wood_density)) 
 
-        ! mort_greff = mort_wd/(1+k_mort2*greff_pls)
+        mort_greff = mort_wd / (1 + k_mort2 * greff_pls)
                     
-
-        !             nind_kill_greff(j,k) = (dens1(j,k) * mort_greff(j,k)) !valores absolutos de ind.
+        nind_kill_greff = dens_ind * mort_greff !valores absolutos de ind.
         !             ! print*, 'NIND_KILL', nind_kill_greff(j,k)
 
-        !             !soma nind_kill
-        !             nind_kill_total(j,k) = nind_kill_FPC(j,k) + nind_kill_greff(j,k) !em ind/m2
+        !summing nind_kill
+        nind_kill_total = nind_kill_FPC + nind_kill_greff !em ind/m2
 
         !             !mort(j,k) = ((dens1(j,k)-nind_kill_total(j,k))/dens1(j,k)) !quanto vai morrer em relação a densidade atual
         !             mort(j,k) = nind_kill_total(j,k)/dens1(j,k) !% de ind que devem morrer em relação ao que tinha anteriormente

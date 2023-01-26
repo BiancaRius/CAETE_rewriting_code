@@ -37,17 +37,17 @@ program test2
 
         call gc_occupation(dens_pls2,FPC_total_gc2, FPC_ind2, FPC_pls2)
     
-        call establish(npls_alive2,FPC_total_gc2,est_pls2)
+        ! call establish(npls_alive2,FPC_total_gc2,est_pls2)
 
-        ! print*, est_pls2
+        ! ! print*, est_pls2
 
-        call sapling_allometry(cleaf_sapl2, csap_sapl2, cheart_sapl2, croot_sapl2)
+        ! call sapling_allometry(cleaf_sapl2, csap_sapl2, cheart_sapl2, croot_sapl2)
 
-        ! print*, cleaf_sapl2
+        ! ! print*, cleaf_sapl2
 
-        call shrink(csap_old2,cleaf_old2,cheart_old2, croot_old2,&
-                    est_pls2, dens_old2,&
-                    csap_new2, cleaf_new2,cheart_new2, croot_new2, cwood_new2,dens_new2)
+        ! call shrink(csap_old2,cleaf_old2,cheart_old2, croot_old2,&
+        !             est_pls2, dens_old2,&
+        !             csap_new2, cleaf_new2,cheart_new2, croot_new2, cwood_new2,dens_new2)
 
         
 
