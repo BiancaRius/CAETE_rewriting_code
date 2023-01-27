@@ -29,8 +29,8 @@ public :: gc_occupation
 
 contains
 
-    subroutine gc_occupation(dens_pls_old, cleaf_pls_old, csap_pls_old, cheart_pls_old,&
-        croot_pls_old, FPC_total_gc, FPC_ind, FPC_pls)
+    subroutine gc_occupation(dens_pls_old, cleaf_pls_old, csap_pls_old, cheart_pls_old, croot_pls_old,&
+        cleaf_pls_new, csap_pls_new, cheart_pls_new, croot_pls_new, dens_pls_new, FPC_total_gc, FPC_ind, FPC_pls)
         
         !VARIABLE INPUTS
         real(r_8), intent(in) :: dens_pls_old  !density (ind/m2) previous the mortality
@@ -46,6 +46,13 @@ contains
         real(r_8), intent(out) :: FPC_ind !(m2)avg individual FPC
         real(r_8), intent(out) :: FPC_pls !(m2) FPC for each PLS
 
+        real(r_8), intent(out) :: cleaf_pls_new !carbon in leaf (kgC/m2) after mortality
+        real(r_8), intent(out) :: csap_pls_new !carbon in sapwood (kgC/m2) after the mortality
+        real(r_8), intent(out) :: cheart_pls_new !carbon in heartwood (kgC/m2) after the mortality
+        real(r_8), intent(out) :: croot_pls_new !carbon in root (kgC/m2) after the mortality
+
+        real(r_8), intent(out) :: dens_pls_new
+        
         !INTERNAL VARIABLES
         !!!Structuring variables
         !!!!!!!!!!!!!!!!Must come from allometry, provisorialy will have a specified value
@@ -71,6 +78,11 @@ contains
         
         real(r_8) :: mort_perc
 
+        real(r_8) :: res_time_leaf
+        real(r_8) :: res_time_sap 
+        real(r_8) :: res_time_heart 
+        real(r_8) :: res_time_root
+
         !(gC) Carbon on plant compartments after establishment and shrink process
         real(r_8) :: cleaf_est 
         real(r_8) :: csap_est 
@@ -86,6 +98,15 @@ contains
         real(r_8) :: croot_mort 
 
         real(r_8) :: dens_mort !density after applying mortality percentage
+
+
+        !(gC) Carbon on plant after loosing C by tissue turnover
+        real(r_8) :: cleaf_turn 
+        real(r_8) :: csap_turn 
+        real(r_8) :: cheart_turn 
+        real(r_8) :: croot_turn
+
+       
 
         !initializing variables
         FPC_total_gc = 0.0D0
@@ -114,6 +135,11 @@ contains
         croot_mort = 0.0D0
         dens_mort = 0.0D0
 
+        cleaf_turn = 0.0D0
+        csap_turn = 0.0D0
+        cheart_turn = 0.0D0
+        croot_turn = 0.0D0
+
     !!!!!POSSIBLE INPUTS
         diam_pls = 100.
         crown_area_pls = 100. 
@@ -123,6 +149,11 @@ contains
         
         spec_leaf = 10.
         wood_density = 10.
+
+        res_time_leaf = 2.
+        res_time_sap = 5.
+        res_time_heart = 1.
+        res_time_root = 2.
 
     !__________________________________
     !Calculating total C for compartments considering density (gC)
@@ -185,9 +216,36 @@ contains
         cheart_mort = cheart_est * mort_perc
         croot_mort  = croot_est * mort_perc
 
-        ! print*, mort_perc
-    !!!!CHECCCKKKmortality by residence time
-    !!CHECKKKKKKchanging carbon pools and density due to mortality
+        !Changing density due to mort_perc
+        dens_mort = dens_est * mort_perc
+
+        !lost of C due to turnover
+           
+        cleaf_turn = cleaf_mort - (cleaf_mort / res_time_leaf)
+
+        print*, cleaf_turn
+
+        csap_turn = csap_mort - (csap_mort /res_time_sap)
+
+        !!!!the dead sapwood is added to heartwood
+        cheart_turn = (cheart_mort - (cheart_mort / res_time_heart)) + (csap_mort / res_time_sap)
+
+        croot_turn = croot_est - (croot_turn / res_time_root)
+
+        !turn into kgC/m2
+
+        cleaf_pls_new = cleaf_turn * dens_mort
+
+        csap_pls_new = csap_turn * dens_mort
+
+        cheart_pls_new = cheart_turn * dens_mort
+
+        croot_pls_new = croot_turn * dens_mort
+
+        dens_pls_new = dens_mort
+
+        print*, 'cleaf new', cleaf_pls_new, cleaf_turn, dens_mort
+
 
     end subroutine gc_occupation
 
@@ -218,7 +276,6 @@ contains
         
         !kill ind due to exc are
         nind_kill_FPC = (dens_pls_old * FPC_dec_pls) / FPC_pls
-        ! print*, nind_kill_FPC
 
     end subroutine exc_area
 
