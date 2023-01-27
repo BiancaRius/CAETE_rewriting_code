@@ -100,9 +100,9 @@ contains
 
     end subroutine sapling_allometry
     
-    subroutine shrink(csap_old, cleaf_old, cheart_old, croot_old,&
-                      est_pls, dens_old,&
-                      csap_new, cleaf_new, cheart_new, croot_new, cwood_new, dens_new) !calculates new densities after the application of shrink process 
+    subroutine shrink(cleaf_old, csap_old, cheart_old, croot_old,&
+                      est_pls, dens_pls_old,&
+                      cleaf_est, csap_est, cheart_est, croot_est, dens_est) !calculates new densities after the application of shrink process 
                                                                              !(shrink of avg individual for carbon balance -- need to be applied because 
                                                                              !of the saplings establishment)
     
@@ -112,7 +112,7 @@ contains
 
         real(r_8), intent(in) :: est_pls !(number of individuals/m2/year) establishment rate - PLS especific (from establish subroutine)
 
-        real(r_8), intent(in) :: dens_old !PLS density (number of individuals/m2) previous the establishment of saplings
+        real(r_8), intent(in) :: dens_pls_old !PLS density (number of individuals/m2) previous the establishment of saplings
 
         !Carbon content on plant compartments before saplings establishment (gC)
         real(r_8), intent(in) :: csap_old   !sapwood
@@ -124,46 +124,46 @@ contains
         !VARIABLES [OUTPUT]  
 
         !Carbon content on plant compartments after saplings establishment (gC) and after shrink process
-        real(r_8), intent(out) :: csap_new   !sapwood
-        real(r_8), intent(out) :: cleaf_new  !leaves
-        real(r_8), intent(out) :: cheart_new !heartwood
-        real(r_8), intent(out) :: croot_new  !fine roots
-        real(r_8), intent(out) :: cwood_new  !total wood
+        real(r_8), intent(out) :: csap_est   !sapwood
+        real(r_8), intent(out) :: cleaf_est  !leaves
+        real(r_8), intent(out) :: cheart_est !heartwood
+        real(r_8), intent(out) :: croot_est  !fine roots
+        ! real(r_8), intent(out) :: cwood_est  !total wood
 
-        real(r_8), intent(out) :: dens_new !PLS density (number of individuals/m2) after the establishment of saplings
+        real(r_8), intent(out) :: dens_est !PLS density (number of individuals/m2) after the establishment of saplings
 
         !Carbon content on plant compartments in saplings (gC) - calculated on sapling_allometry subroutine
         real(r_8) :: csap_sapl   !sapwood
         real(r_8) :: cleaf_sapl  !leaves
         real(r_8) :: cheart_sapl !heartwood
         real(r_8) :: croot_sapl  !fine roots
+
+        real(r_8) :: cwood_est
         
      
         ! !initializing variables
-        dens_new   = 0.0D0
-        csap_new   = 0.0D0
-        cleaf_new  = 0.0D0
-        cheart_new = 0.0D0
-        croot_new  = 0.0D0
-        cwood_new  = 0.0D0
+        dens_est   = 0.0D0
+        csap_est   = 0.0D0
+        cleaf_est  = 0.0D0
+        cheart_est = 0.0D0
+        croot_est  = 0.0D0
+        cwood_est  = 0.0D0
          
         
-        dens_new = dens_old + est_pls
+        dens_est = dens_pls_old + est_pls
 
         call sapling_allometry(cleaf_sapl, csap_sapl, cheart_sapl,croot_sapl)
 
-
-
         !Equations from Sitch et al., 2003
-        csap_new   = ((csap_old * dens_old) + (csap_sapl * est_pls)) / dens_new !temporary since part of it goes to heartwood
+        csap_est   = ((csap_old * dens_pls_old) + (csap_sapl * est_pls)) / dens_est 
 
-        cleaf_new  = ((cleaf_old * dens_old) + (cleaf_sapl * est_pls)) / dens_new
+        cleaf_est  = ((cleaf_old * dens_pls_old) + (cleaf_sapl * est_pls)) / dens_est
       
-        cheart_new = ((cheart_old*dens_old)+(cheart_sapl*est_pls)) / dens_new
+        cheart_est = ((cheart_old * dens_pls_old) + (cheart_sapl * est_pls)) / dens_est
 
-        croot_new  = ((croot_old * dens_old) + (croot_sapl * est_pls)) / dens_new
+        croot_est  = ((croot_old * dens_pls_old) + (croot_sapl * est_pls)) / dens_est
 
-        cwood_new  = cheart_new + csap_new
+        cwood_est  = cheart_est + csap_est
 
         ! print*, csap_new
 

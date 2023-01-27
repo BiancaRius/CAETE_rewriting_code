@@ -17,10 +17,10 @@ program test2
 
 
     !C that enters in the logic (kgC/m2) for each PLS
-    real(r_8) :: cleaf_pls_in  =1.0D0
-    real(r_8) :: csap_pls_in   =1.0D0
-    real(r_8) :: cheart_pls_in =10.0D0
-    real(r_8) :: croot_pls_in  =1.0D0
+    real(r_8) :: cleaf_pls_in  = 1.0D0
+    real(r_8) :: csap_pls_in   = 1.0D0
+    real(r_8) :: cheart_pls_in = 10.0D0
+    real(r_8) :: croot_pls_in  = 1.0D0
 
     !density that enters in the logic (ind/m2) for each PLS
     real(r_8) :: dens_pls_in = 10. 
@@ -36,8 +36,9 @@ program test2
     
    
 
-        call gc_occupation(dens_pls_in,cleaf_pls_in,FPC_total_gc2, FPC_ind2, FPC_pls2)
-    
+        call gc_occupation(dens_pls_in,cleaf_pls_in,csap_pls_in, cheart_pls_in,&
+            croot_pls_in, FPC_total_gc2, FPC_ind2, FPC_pls2)
+        ! print*, FPC_pls2
         ! call establish(npls_alive2,FPC_total_gc2,est_pls2)
 
         ! ! print*, est_pls2
