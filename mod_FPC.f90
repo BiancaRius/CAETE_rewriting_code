@@ -148,7 +148,7 @@ contains
         carbon_increment = 10.
         
         spec_leaf = 10.
-        wood_density = 10.
+        wood_density = 10. !CHECK! PRECISA SER TRANSFORMADO
 
         res_time_leaf = 2.
         res_time_sap = 5.

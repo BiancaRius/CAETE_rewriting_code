@@ -1,0 +1,44 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module module_006 ! in 
+    interface  ! in :module_006
+        module types ! in :module_006:constants.f90
+            integer, public,parameter,optional :: l_1=2
+            integer, public,parameter,optional :: i_2=2
+            integer, public,parameter,optional :: i_4=4
+            integer, public,parameter,optional :: r_4=4
+            integer, public,parameter,optional :: r_8=8
+        end module types
+        module constants ! in :module_006:constants.f90
+            use types
+            real(kind=8), parameter,optional :: klatosa=6000.0
+            real(kind=8), parameter,optional :: ltor=0.7730258755234766
+            real(kind=8), parameter,optional :: k_allom1=100.0
+            real(kind=8), parameter,optional :: k_allom2=40.0
+            real(kind=8), parameter,optional :: k_allom3=0.5
+            real(kind=8), parameter,optional :: tol=1e-07
+            real(kind=8), parameter,optional :: pi=3.1415926536
+            real(kind=8), parameter,optional :: reinickerp=1.6
+            real(kind=8), parameter,optional :: nseg=20
+            real(kind=8), parameter,optional :: xacc=0.1
+            real(kind=8), parameter,optional :: yacc=1e-10
+        end module constants
+        module traits ! in :module_006:constants.f90
+            use types
+            real(kind=8), parameter,optional :: sla=0.023
+            real(kind=8), parameter,optional :: dwood=0.74
+        end module traits
+        module allocation ! in :module_006:allocation_reform_bia.f90
+            use constants
+            use types
+            subroutine alloc(z,b) ! in :module_006:allocation_reform_bia.f90:allocation
+                real(kind=8) intent(in) :: z
+                real(kind=8) intent(out) :: b
+            end subroutine alloc
+        end module allocation
+    end interface 
+end python module module_006
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
