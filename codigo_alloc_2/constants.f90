@@ -17,11 +17,11 @@ module constants
     !==============================!
     !========= CONSTANTS ==========!
     !==============================!
-    real(r_8), parameter, public :: klatosa = 6000.0
+    real(r_8), parameter, public :: klatosa =  6000.0
     real(r_8), parameter, public :: ltor = 0.77302587552347657
     real(r_8), parameter, public :: k_allom1 = 100.0 !allometric constant (Table 3; Sitch et al., 2003)
-    real(r_8), parameter, public :: k_allom2 = 40.0
-    real(r_8), parameter, public :: k_allom3 = 0.50
+    real(r_8), parameter, public :: k_allom2 = 36!40.0
+    real(r_8), parameter, public :: k_allom3 = 0.22!0.50
     real(r_8), parameter, public :: tol = 0.0000001
     real(r_8), parameter, public :: pi = 3.1415926536
     real(r_8), parameter, public :: reinickerp = 1.6 !allometric constant (Table 3; Sitch et al., 2003)
@@ -37,7 +37,7 @@ module traits
     use types
     implicit none
 
-    real(r_8), parameter, public :: sla = 0.023
-    real(r_8), parameter, public :: dwood = 0.74*1.D6
+    real(r_8), parameter, public :: sla =  15.36 !0.023
+    real(r_8), parameter, public :: dwood = 200. !0.74*1.D6
 
 end module traits

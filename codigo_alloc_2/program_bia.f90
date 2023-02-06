@@ -5,9 +5,9 @@ program program2
     
     implicit none
     integer(i_4) :: i
-    real(r_8) :: leaf_in  = 2.4 !kgC/m2 initial C leaf input 
-    real(r_8) :: root_in  = 1.8 !kgC/m2 initial C root input
-    real(r_8) :: wood_in  = 20  !kgC/m2 initial C wood input
+    real(r_8) :: leaf_in  = 2. !kgC/m2 initial C leaf input 
+    real(r_8) :: root_in  = 2.7 !kgC/m2 initial C root input
+    real(r_8) :: wood_in  = 10.  !kgC/m2 initial C wood input
     real(r_8) :: sap_in
     real(r_8) :: heart_in 
     real(r_8) :: bminc_in = 3.4 !carbon (NPP) available to be allocated
@@ -23,14 +23,14 @@ program program2
 
 
 
-    sap_in   = 0.05*wood_in
-    heart_in = 0.95*wood_in
+    sap_in   = 87.!0.05*wood_in
+    heart_in = 324.!0.95*wood_in
 
     
         call alloc(leaf_in, root_in, sap_in, heart_in, bminc_in,dens_in,&
             leaf_out, root_out, sap_out, heart_out)
 
-       
+          print*, 2.e-4 * exp(6.15 - 0.46 * log(4. * 12.))
 
         !update variables
         ! leaf_in = leaf_out

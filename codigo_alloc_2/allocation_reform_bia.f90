@@ -8,7 +8,11 @@ implicit none
 
 private
 
-public :: alloc, sensitivity!, f
+public :: alloc,& !(s) calculates carbon pools output from NPP and carbon from preivous step
+          height_calc,& !(f)calculates height
+          leaf_req_calc,& !(f)leaf mass requeriment to satisfy allometry
+          leaf_inc_min_calc,& !(f) minimum leaf increment to satisfy allocation equations
+          root_inc_min_calc
 
 contains
 
@@ -37,11 +41,13 @@ contains
         real(r_8), intent(out) :: heart_out
 
         !INTERNAL VARIABLES
+        real(r_8) :: wood_in_ind !(gC) total wood - sum of heart and sap
+
         !variable for bisec loop
         integer(i_4) :: x, i
         real(r_8) :: tmp
         real(r_8) :: tmp2
-        real(r_8) :: sens, sens_res
+        real(r_8) :: sens
 
         !carbon (gC) in compartments considering the density (ind/m2)
         real(r_8) :: leaf_in_ind
@@ -55,34 +61,55 @@ contains
         real(r_8) :: sap_inc
         real(r_8) :: heart_inc
 
-        ! real(r_8) :: height
-        ! real(r_8) :: lm1
-        ! real(r_8) :: lminc_min
-        ! real(r_8) :: rminc_min
+        !Functions to the logic
+        !dwood !!####****!! ATTENTION: dwood is already transformed to gC/m3 at constants.f90
+        real(r_8) :: height
+        real(r_8) :: leaf_req
+        real(r_8) :: leaf_inc_min
+        real(r_8) :: root_inc_min
+
 
         !initializing variables
         leaf_in_ind = 0.0D0
         root_in_ind = 0.0D0
         sap_in_ind = 0.0D0
         heart_in_ind = 0.0D0
+        wood_in_ind = 0.0D0
+        leaf_inc_min = 0.0D0
+        root_inc_min = 0.0D0
 
         leaf_out = 0.0D0
         root_out = 0.0D0
         sap_out  = 0.0D0
         heart_out = 0.0D0
 
-
-        !!!!!CHECK IF DWOOD IS IN THE CORRECT UNIT
-
+        height = 0.0D0
+        leaf_req = 0.0D0
 
         !carbon (gC) in compartments considering the density (ind/m2)
-        leaf_in_ind = (leaf_in/dens_in)*1.D3
-        root_in_ind = (root_in/dens_in)*1.D3
-        sap_in_ind = (sap_in/dens_in)*1.D3 
-        heart_in_ind = (heart_in/dens_in)*1.D3
+        leaf_in_ind = (leaf_in/dens_in)!*1.D3
+        root_in_ind = (root_in/dens_in)!*1.D3
+        sap_in_ind = (sap_in/dens_in)!*1.D3 
+        heart_in_ind = (heart_in/dens_in)!*1.D3
+        wood_in_ind = sap_in_ind + heart_in_ind
 
-        ! call functions to logic 
-        ! height = alt_height(wood_ind, woodens)
+        ! call functions to logic
+        height = height_calc(wood_in_ind)
+        print*, 'height',height
+
+        leaf_req = leaf_req_calc(sap_in_ind, height)
+
+        print*, 'leaf_red',leaf_req
+
+        leaf_inc_min = leaf_inc_min_calc(leaf_req, leaf_in_ind)
+        print*,'leaf inc min', leaf_inc_min,'leaf_in_ind', leaf_in_ind
+
+        root_inc_min = root_inc_min_calc(leaf_req, root_in_ind)
+        print*, 'root_inc_min', root_inc_min
+        !lminc_min = leaf_min(lm1,leaf_ind)
+
+        ! rminc_min = root_min(lm1,root_ind)
+        
         ! lm1 = leaf_mass(sap_ind,height,sla,woodens)
         ! lminc_min = leaf_min(lm1,leaf_ind)
         ! rminc_min = root_min(lm1,root_ind)
@@ -100,13 +127,16 @@ contains
 
         do i = 1, 200 
             
-           if (x.eq.200) exit 
+        !    if (x.eq.200) exit 
         
            if ((abs(tmp - tmp2)).le.sens) then
             print*, 'sensitivity attained'
             exit 
            endif 
            
+           !IFS normal/abnormal allocation
+           !sensitivity of carbon (yes)
+           ! put scape infinity loop (print)
            tmp = tmp2 
            
            x = x + 1
@@ -136,16 +166,78 @@ contains
 
     end subroutine alloc
 
-    function sensitivity(tmp, tmp2) result(tmp_sens)
+    function height_calc (wood_in_ind) result (height)
         
-        real(r_8), intent(in) :: tmp
-        real(r_8), intent(in) :: tmp2
+        real(r_8), intent(in) :: wood_in_ind !gC/ind - total wood (sap + heart) carbon stock
+        
+        !Trait
+        !dwood - wood density
+        
+        real(r_8) :: height !m - output
 
-        real(r_8) :: tmp_sens
+        !variable internal
+        real(r_8) :: diameter 
+        
+        
 
-        tmp_sens = tmp+tmp2
+        !Calculo diameter (necessary to height)
+        diameter = ((4*wood_in_ind)/(dwood)*pi*k_allom2)**(1/(2+k_allom3))
+
+        !Height 
+        height = k_allom2*(diameter**k_allom3)
+
+
+    end function
+
+    function leaf_req_calc (sap_in_ind, height)  result (leaf_req)
     
-    end function sensitivity
+        real(r_8), intent(in) :: sap_in_ind !gC - sapwood input
+        real(r_8), intent(in) :: height !m
+       
+        real(r_8) :: leaf_req !gC - output- leaf mass requeriment to satisfy allometry 
+
+        !Trait
+        !dwood - wood density (gc/m3) - already transformed in constants.f90
+        !sla - specific leaf area
+
+        leaf_req = (klatosa * sap_in_ind / ((dwood) * height * (sla)))
+
+    end function leaf_req_calc
+
+    function leaf_inc_min_calc (leaf_req, leaf_in_ind) result (leaf_inc_min)
+        use types
+        use constants    
+
+        real(r_8), intent(in) :: leaf_req !gC leaf mass requeriment to satisfy allometry
+        real(r_8), intent(in) :: leaf_in_ind !gC leaf input
+        
+        real(r_8) :: leaf_inc_min !gC -output- minimum leaf increment to satisfy allocation equations
+
+        leaf_inc_min = leaf_req - leaf_in_ind
+
+    end function leaf_inc_min_calc
+
+    function root_inc_min_calc (leaf_req, root_in_ind) result (root_inc_min) !ROOT MASS MINIMO
+        use types
+        use constants
+
+        !calculate minimum root production to support this leaf mass (i.e. lm_ind + lminc_ind_min)
+        !May be negative following a reduction in soil water limitation (increase in lm2rm) relative to last year.
+
+        real(r_8), intent(in) :: root_in_ind !gC root input
+        real(r_8), intent(in) :: leaf_req  !gC leaf mass requeriment to satisfy allometry
+        
+        real(r_8) :: root_inc_min !gC -output- minimum root increment to satisfy allocation equations
+
+        ! real(r_8) :: rm_ind
+        ! rm_ind = (rm*1.D3)/nind
+
+        root_inc_min = (leaf_req / ltor - root_in_ind)
+
+    end function root_inc_min_calc
+
+end module allocation
+
 ! function f(leaf_prev_alloc, sap_prev_alloc, heart_prev_alloc, root_prev_alloc,&
     ! bminc, sla, dwood, xis) result (root_soluction)
 ! 
@@ -180,5 +272,3 @@ contains
 !função find deltaL, deltaR, deltaS
 
 !definir função f(x) - achar equivalente
-
-end module allocation
