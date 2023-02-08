@@ -14,7 +14,8 @@ public :: alloc,& !(s) calculates carbon pools output from NPP and carbon from p
           leaf_inc_min_calc,& !(f) minimum leaf increment to satisfy allocation equations
           root_inc_min_calc, &
           normal_alloc, &
-          root_bisec_calc
+          root_bisec_calc,&
+          positive_leaf_inc_min
 
 contains
 
@@ -127,7 +128,10 @@ contains
                     print*, 'leaf inc alloc==', leaf_inc_alloc
         else
 
-            print*, ' anormal'
+            
+            call abnormal_alloc(bminc_in_ind, leaf_in_ind, root_in_ind, sap_in_ind, height)
+            
+            print*, ' abnormal'
 
         endif
 
@@ -270,11 +274,14 @@ contains
         real(r_8), intent(in) :: bminc_in_ind
 
         real(r_8), intent(out) :: leaf_inc_alloc
+        real(r_8) :: root_inc_alloc
+        real(r_8) :: sap_inc_alloc
+
 
         real(r_8) :: x1
         real(r_8) :: x2
         real(r_8) :: dx
-        real(r_8) :: fx1
+        real(r_8) :: fx1     
 
 
         !initializing variables
@@ -282,6 +289,8 @@ contains
         x2 = 0.0D0
         dx = 0.0D0
         leaf_inc_alloc = 0.0D0
+        root_inc_alloc = 0.0D0
+        sap_inc_alloc = 0.0D0
         fx1 = 0.0D0
 
 
@@ -301,17 +310,16 @@ contains
 
 
         else 
-            
-            dx = dx / real(nseg)
-            
-            fx1 = root_bisec_calc(leaf_in_ind, sap_in_ind, heart_in_ind,&
-            root_in_ind, bminc_in_ind, x1)
             !Find a root for non-negative lminc_ind, rminc_ind and sminc_ind using Bisection Method (Press et al., 1986, p 346)
             !There should be exactly one solution (no proof presented, but Steve has managed one).
 
+            call positive_leaf_inc_min(leaf_in_ind, sap_in_ind, heart_in_ind,&
+            root_in_ind, bminc_in_ind, dx, x1, x2, leaf_inc_alloc)        
+            
+            root_inc_alloc = (leaf_in_ind + leaf_inc_alloc) / ltor - root_in_ind
 
-            leaf_inc_alloc = 3
-        
+            sap_inc_alloc = bminc_in_ind - leaf_inc_alloc - root_inc_alloc
+
         endif
 
 
@@ -332,7 +340,7 @@ contains
         !internal variables
         real(r_8), parameter :: pi4 = pi/4
         real(r_8), parameter :: a1 = 2/k_allom3
-        real(r_8), parameter :: a2 = 1 + a1 !!!CONFERIR ...ESTÁ DIFERENTE ENTRE NOSSO CÓDIGO E O lpjmlFIRE
+        real(r_8), parameter :: a2 = 1 + a1 !Essa é a forma correta !!CONFERIR ...ESTÁ DIFERENTE ENTRE NOSSO CÓDIGO E O lpjmlFIRE
         real(r_8), parameter :: a3 = k_allom2**a1
 
         !initializing variables
@@ -345,8 +353,188 @@ contains
 
     end function root_bisec_calc
 
+    subroutine positive_leaf_inc_min (leaf_in_ind, sap_in_ind, heart_in_ind,&
+        root_in_ind, bminc_in_ind, dx2, x1_aux, x2_aux, leaf_inc_alloc)
+
+        real(r_8), intent(in) :: leaf_in_ind 
+        real(r_8), intent(in) :: sap_in_ind
+        real(r_8), intent(in) :: heart_in_ind 
+        real(r_8), intent(in) :: root_in_ind 
+        real(r_8), intent(in) :: bminc_in_ind 
+        real(r_8), intent(in) :: x1_aux, x2_aux 
+        real(r_8), intent(in) :: dx2
+
+        real(r_8), intent(out) :: leaf_inc_alloc
+
+        !internal variable
+        real(r_8) :: dx
+        real(r_8) :: fx1
+        real(r_8) :: fmid
+        real(r_8) :: xmid
+        real(r_8) :: x1
+        real(r_8) :: x2
+        real(r_8) :: sign
+        real(r_8) :: rtbis
+
+
+        integer(i_4) :: i
+
+        x1 = x1_aux
+        x2 = x2_aux
+
+        print*,'bf', x1, x2
+
+        dx = dx2 / real(nseg)
+            
+        fx1 = root_bisec_calc(leaf_in_ind, sap_in_ind, heart_in_ind,&
+            root_in_ind, bminc_in_ind, x1)
+
+        !Find approximate location of leftmost root on the interval (x1,x2).
+        !Subdivide (x1,x2) into nseg equal segments seeking change in sign of f(xmid) relative to f(x1).
+
+        fmid = fx1
+        xmid = x1
+
+        i = 1
+            
+        do 
+            xmid = xmid + dx
+            
+            fmid = root_bisec_calc(leaf_in_ind, sap_in_ind, heart_in_ind,&
+                root_in_ind, bminc_in_ind, xmid)
+
+            i = i + 1
+            
+            if (fmid * fx1 .le. 0. .or. xmid .ge. x2) exit  !sign has changed or we are over the upper bound
+
+            if (i > 20) print*, 'first alloc loop flag'
+            if (i > 50) stop 'Too many iterations allocmod'
+      
+
+        end do
+
+        !the interval that brackets zero in f(x) becomes the new bounds for the root search
+
+        x1 = xmid - dx
+        x2 = xmid
+
+        !Apply bisection method to find root on the new interval (x1,x2)
+        fx1 = root_bisec_calc(leaf_in_ind, sap_in_ind, heart_in_ind,&
+        root_in_ind, bminc_in_ind, x1)
+
+        if (fx1.ge.0.) then
+            sign = -1
+        else
+            sign = 1
+        endif
+
+        rtbis = x1
+
+        dx = x2 - x1
+
+        !Bisection loop: search iterates on value of xmid until xmid lies within xacc of the root,
+        !i.e. until |xmid-x| < xacc where f(x) = 0. the final value of xmid with be the leafmass increment
+
+        i = 1
+
+        do 
+            dx   = 0.5 * dx
+            xmid = rtbis + dx
+
+            !calculate fmid = f(xmid) [eqn (22)]
+
+            fmid = root_bisec_calc(leaf_in_ind, sap_in_ind, heart_in_ind,&
+                root_in_ind, bminc_in_ind, xmid)
+
+            print*, 'fmid, bisec==', fmid
+            print*, 'fmid * sign', fmid*sign
+
+            if (fmid * sign .le. 0.) rtbis = xmid
+            print*, 'rtbis', rtbis
+
+            if (dx .lt. xacc .or. abs(fmid) .le. yacc) exit
+
+            if (i > 20) print*,'second alloc loop flag'
+            if (i > 50) stop 'Too many iterations allocmod'
+  
+
+            i = i + 1
+        end do
+        
+        !Now rtbis contains numerical solution for lminc_ind given eqn (22)
+
+        leaf_inc_alloc = rtbis
+
+    
+    end subroutine
+
+    subroutine abnormal_alloc(bminc_in_ind, leaf_in_ind, root_in_ind, sap_in_ind, height)
+        
+        real(r_8), intent(in) :: leaf_in_ind 
+        real(r_8), intent(in) :: sap_in_ind
+        real(r_8), intent(in) :: root_in_ind 
+        real(r_8), intent(in) :: bminc_in_ind
+        real(r_8), intent(in) :: height
+
+
+        real(r_8) :: leaf_inc_alloc
+        real(r_8) :: root_inc_alloc
+        real(r_8) :: sap_inc_alloc
+
+
+        !initialize variables
+        leaf_inc_alloc = 0.0D0
+        root_inc_alloc = 0.0D0
+        sap_inc_alloc = 0.0D0
+
+
+        leaf_inc_alloc = ( bminc_in_ind - leaf_in_ind / ltor + root_in_ind )/ (1. + 1./ ltor)
+
+        print*, 'abnormal leaf alloc', leaf_inc_alloc
+
+        if (leaf_inc_alloc.gt.0.) then
+        
+            !Positive allocation to leafmass
+            
+            root_inc_alloc = bminc_in_ind - leaf_inc_alloc  !eqn (31)
+
+            print*, 'positive alloc', root_inc_alloc
+
+           !Add killed roots (if any) to below-ground litter
+
+            if(root_inc_alloc.lt.0.)then
+                
+                leaf_inc_alloc = bminc_in_ind
+
+                root_inc_alloc = (leaf_in_ind + leaf_inc_alloc) / ltor - root_in_ind
+                
+                !!!####ATENÇÃO AQUI!! TUDO VAI PRA LITEIRA????
+                print*, 'root inc alloc negative', root_inc_alloc
+                print*, 'ATTENTION PLEASE!!!!!!!!!!!'
+            endif 
+        else 
+
+            !Negative allocation to leaf mass
+
+            root_inc_alloc = bminc_in_ind
+            
+            leaf_inc_alloc = (root_in_ind + root_inc_alloc) * ltor - leaf_in_ind  !from eqn (9)
+
+            print*, 'negative alloc to leaf mass', root_inc_alloc, leaf_inc_alloc
+            print*, 'ATTENTION PLEASE!!!!!!!!!!!'
+
+        endif
+
+        !Calculate sminc_ind (must be negative)
+        sap_inc_alloc = (leaf_in_ind + leaf_inc_alloc) * sla / klatosa*dwood*height - sap_in_ind
+        print*, 'sap inc - must be negative ==', sap_inc_alloc, sap_in_ind,&
+        (leaf_in_ind + leaf_inc_alloc) * sla / klatosa*dwood*height
+    
+    end subroutine
 
 end module allocation
+
+
 
 ! function f(leaf_prev_alloc, sap_prev_alloc, heart_prev_alloc, root_prev_alloc,&
     ! bminc, sla, dwood, xis) result (root_soluction)
