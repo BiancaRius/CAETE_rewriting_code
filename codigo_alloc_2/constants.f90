@@ -37,7 +37,7 @@ module traits
     use types
     implicit none
 
-    real(r_8), parameter, public :: sla =  15.36 !0.023
-    real(r_8), parameter, public :: dwood = 200. !0.74*1.D6
+    real(r_8), parameter, public :: sla = 15.36 !0.023
+    real(r_8), parameter, public :: dwood = 200.!0.74*1.D3!200. !0.74*1.D6
 
 end module traits

@@ -14,14 +14,16 @@ public :: alloc,& !(s) calculates carbon pools output from NPP and carbon from p
           leaf_inc_min_calc,& !(f) minimum leaf increment to satisfy allocation equations
           root_inc_min_calc, &
           normal_alloc, &
+          abnormal_alloc,&
           root_bisec_calc,&
           positive_leaf_inc_min
 
 contains
 
     subroutine alloc(leaf_in, root_in, sap_in, heart_in, bminc_in, dens_in,&
-        leaf_out, root_out, sap_out, heart_out)
+        leaf_out, root_out, sap_out, heart_out,z)
 
+        integer(i_4), intent(in)::z 
         !VARIABLE INPUTS
         !carbon inputs (kgC/m2)
         real(r_8), intent(in) :: leaf_in
@@ -59,12 +61,6 @@ contains
         real(r_8) :: heart_in_ind
         real(r_8) :: bminc_in_ind
 
-        !carbon increment (gC) in compartments 
-        real(r_8) :: leaf_inc
-        real(r_8) :: root_inc
-        real(r_8) :: sap_inc
-        real(r_8) :: heart_inc
-
         !Functions to the logic
         !dwood !!####****!! ATTENTION: dwood is already transformed to gC/m3 at constants.f90
         real(r_8) :: height
@@ -72,9 +68,11 @@ contains
         real(r_8) :: leaf_inc_min
         real(r_8) :: root_inc_min
 
-        !variables normal allocation
+        !variables allocation (increase for each compartment)
         real(r_8) :: leaf_inc_alloc
-
+        real(r_8) :: root_inc_alloc
+        real(r_8) :: sap_inc_alloc
+        real(r_8) :: heart_inc_alloc
 
         !initializing variables
         leaf_in_ind = 0.0D0
@@ -94,6 +92,10 @@ contains
         leaf_req = 0.0D0
 
         leaf_inc_alloc = 0.0D0
+        root_inc_alloc = 0.0D0
+        sap_inc_alloc = 0.0D0
+        heart_inc_alloc = 0.0D0
+
 
         !carbon (gC) in compartments considering the density (ind/m2)
         leaf_in_ind = (leaf_in/dens_in)!*1.D3
@@ -102,7 +104,7 @@ contains
         heart_in_ind = (heart_in/dens_in)!*1.D3
         wood_in_ind = sap_in_ind + heart_in_ind
 
-        bminc_in_ind = bminc_in/dens_in !*1D3
+        bminc_in_ind = (bminc_in/dens_in)!*1D3
 
         ! call functions to logic
         height = height_calc(wood_in_ind)
@@ -110,7 +112,7 @@ contains
 
         leaf_req = leaf_req_calc(sap_in_ind, height)
 
-        ! print*, 'leaf_red',leaf_req
+        print*, 'leaf_req',leaf_req
 
         leaf_inc_min = leaf_inc_min_calc(leaf_req, leaf_in_ind)
         ! print*,'leaf inc min', leaf_inc_min,'leaf_in_ind', leaf_in_ind
@@ -123,21 +125,28 @@ contains
             print*, 'normal'
             
             call normal_alloc(leaf_inc_min, leaf_in_ind, root_in_ind, bminc_in_ind,&
-                    sap_in_ind, heart_in_ind, leaf_inc_alloc)
+                    sap_in_ind, heart_in_ind, leaf_inc_alloc, root_inc_alloc, sap_inc_alloc)
 
-                    print*, 'leaf inc alloc==', leaf_inc_alloc
+                    ! print*, 'leaf inc alloc==', leaf_inc_alloc
         else
 
             
-            call abnormal_alloc(bminc_in_ind, leaf_in_ind, root_in_ind, sap_in_ind, height)
+            call abnormal_alloc(bminc_in_ind, leaf_in_ind, root_in_ind, sap_in_ind, heart_in_ind,height,&
+            leaf_inc_alloc, root_inc_alloc, sap_inc_alloc,heart_inc_alloc, z)
             
             print*, ' abnormal'
 
         endif
 
-        !define bisection method
-            !if f(x1) * f(x2) gt 0 then return -2
-        !função f - root_bisec
+         !Increment C compartments - OUTPUT FINAL (kgC/m²)
+        !!############PROVISÓRIO
+
+        print*, 'INCREMENT ==', leaf_inc_alloc+sap_inc_alloc+root_inc_alloc
+
+        leaf_out = ((leaf_in_ind + leaf_inc_alloc)*dens_in)!/1.D3
+        root_out = ((root_in_ind + root_inc_alloc)*dens_in)!/1.D3
+        sap_out  = ((sap_in_ind + sap_inc_alloc)*dens_in)!/1.D3
+        heart_out = ((heart_in_ind + heart_inc_alloc)*dens_in)!/1.D3
         
         !________________
         !sensitivity test
@@ -146,44 +155,32 @@ contains
         tmp2 = 1
         sens = 1.e-3
 
-        do i = 1, 200 
+        ! do i = 1, 200 
             
-        !    if (x.eq.200) exit 
+        ! !    if (x.eq.200) exit 
         
-           if ((abs(tmp - tmp2)).le.sens) then
-            print*, 'sensitivity attained'
-            exit 
-           endif 
+        !    if ((abs(tmp - tmp2)).le.sens) then
+        !     print*, 'sensitivity attained'
+        !     exit 
+        !    endif 
            
-           !IFS normal/abnormal allocation
-           !sensitivity of carbon (yes)
-           ! put scape infinity loop (print)
-           tmp = tmp2 
+        !    !IFS normal/abnormal allocation
+        !    !sensitivity of carbon (yes)
+        !    ! put scape infinity loop (print)
+        !    tmp = tmp2 
            
-           x = x + 1
+        !    x = x + 1
            
-           tmp2 = (tmp2 + 4)/2
+        !    tmp2 = (tmp2 + 4)/2
 
-        enddo
+        ! enddo
 
-        print*, x
-        !_________________
+        ! print*, x
+        ! !_________________
 
 
 
-        !Increment C compartments - OUTPUT FINAL (kgC/m²)
-        !!############PROVISÓRIO
-
-        leaf_inc = 3.
-        root_inc = 3.
-        sap_inc = 3.
-        heart_inc = 3.
-
-        leaf_out = ((leaf_in_ind + leaf_inc)*dens_in)/1.D3
-        root_out = ((root_in_ind + root_inc)*dens_in)/1.D3
-        sap_out  = ((sap_in_ind + sap_inc)*dens_in)/1.D3
-        heart_out = ((heart_in_ind + heart_inc)*dens_in)/1.D3
-
+       
 
     end subroutine alloc
 
@@ -264,7 +261,7 @@ contains
     end function root_inc_min_calc
 
     subroutine normal_alloc (leaf_inc_min, leaf_in_ind, root_in_ind, bminc_in_ind,&
-        sap_in_ind, heart_in_ind, leaf_inc_alloc)
+        sap_in_ind, heart_in_ind, leaf_inc_alloc, root_inc_alloc, sap_inc_alloc)
 
         real(r_8), intent(in) :: leaf_inc_min 
         real(r_8), intent(in) :: leaf_in_ind  
@@ -274,8 +271,8 @@ contains
         real(r_8), intent(in) :: bminc_in_ind
 
         real(r_8), intent(out) :: leaf_inc_alloc
-        real(r_8) :: root_inc_alloc
-        real(r_8) :: sap_inc_alloc
+        real(r_8), intent(out) :: root_inc_alloc
+        real(r_8), intent(out) :: sap_inc_alloc
 
 
         real(r_8) :: x1
@@ -316,7 +313,8 @@ contains
             call positive_leaf_inc_min(leaf_in_ind, sap_in_ind, heart_in_ind,&
             root_in_ind, bminc_in_ind, dx, x1, x2, leaf_inc_alloc)        
             
-            root_inc_alloc = (leaf_in_ind + leaf_inc_alloc) / ltor - root_in_ind
+            root_inc_alloc = ((leaf_in_ind + leaf_inc_alloc) / ltor) - root_in_ind
+            print*, 'root inc alloc == ',root_inc_alloc
 
             sap_inc_alloc = bminc_in_ind - leaf_inc_alloc - root_inc_alloc
 
@@ -339,10 +337,11 @@ contains
         
         !internal variables
         real(r_8), parameter :: pi4 = pi/4
-        real(r_8), parameter :: a1 = 2/k_allom3
-        real(r_8), parameter :: a2 = 1 + a1 !Essa é a forma correta !!CONFERIR ...ESTÁ DIFERENTE ENTRE NOSSO CÓDIGO E O lpjmlFIRE
+        real(r_8), parameter :: a1 = 2./ k_allom3
+        real(r_8), parameter :: a2 = 1. + a1 !Essa é a forma correta !!CONFERIR ...ESTÁ DIFERENTE ENTRE NOSSO CÓDIGO E O lpjmlFIRE
         real(r_8), parameter :: a3 = k_allom2**a1
 
+        
         !initializing variables
         fx1 = 0.0D0
 
@@ -382,7 +381,7 @@ contains
         x1 = x1_aux
         x2 = x2_aux
 
-        print*,'bf', x1, x2
+        ! print*,'bf', x1, x2
 
         dx = dx2 / real(nseg)
             
@@ -446,11 +445,11 @@ contains
             fmid = root_bisec_calc(leaf_in_ind, sap_in_ind, heart_in_ind,&
                 root_in_ind, bminc_in_ind, xmid)
 
-            print*, 'fmid, bisec==', fmid
-            print*, 'fmid * sign', fmid*sign
+            ! print*, 'fmid, bisec==', fmid
+            ! print*, 'fmid * sign', fmid*sign
 
             if (fmid * sign .le. 0.) rtbis = xmid
-            print*, 'rtbis', rtbis
+            ! print*, 'rtbis', rtbis
 
             if (dx .lt. xacc .or. abs(fmid) .le. yacc) exit
 
@@ -468,29 +467,33 @@ contains
     
     end subroutine
 
-    subroutine abnormal_alloc(bminc_in_ind, leaf_in_ind, root_in_ind, sap_in_ind, height)
+    subroutine abnormal_alloc(bminc_in_ind, leaf_in_ind, root_in_ind, sap_in_ind,heart_in_ind, height,&
+        leaf_inc_alloc, root_inc_alloc, sap_inc_alloc, heart_inc_alloc, z)
         
+        integer(i_4), intent(in) :: z
         real(r_8), intent(in) :: leaf_in_ind 
         real(r_8), intent(in) :: sap_in_ind
-        real(r_8), intent(in) :: root_in_ind 
+        real(r_8), intent(in) :: root_in_ind
+        real(r_8), intent(in) :: heart_in_ind  
         real(r_8), intent(in) :: bminc_in_ind
         real(r_8), intent(in) :: height
 
 
-        real(r_8) :: leaf_inc_alloc
-        real(r_8) :: root_inc_alloc
-        real(r_8) :: sap_inc_alloc
+        real(r_8), intent(out) :: leaf_inc_alloc
+        real(r_8), intent(out) :: root_inc_alloc
+        real(r_8), intent(out) :: sap_inc_alloc
+        real(r_8), intent(out) :: heart_inc_alloc
 
 
         !initialize variables
         leaf_inc_alloc = 0.0D0
         root_inc_alloc = 0.0D0
         sap_inc_alloc = 0.0D0
-
+        heart_inc_alloc = 0.0D0
 
         leaf_inc_alloc = ( bminc_in_ind - leaf_in_ind / ltor + root_in_ind )/ (1. + 1./ ltor)
 
-        print*, 'abnormal leaf alloc', leaf_inc_alloc
+        ! print*, 'abnormal leaf alloc ==', leaf_inc_alloc
 
         if (leaf_inc_alloc.gt.0.) then
         
@@ -498,19 +501,20 @@ contains
             
             root_inc_alloc = bminc_in_ind - leaf_inc_alloc  !eqn (31)
 
-            print*, 'positive alloc', root_inc_alloc
+            print*, 'positive allocleaf, root inc ==', root_inc_alloc
 
            !Add killed roots (if any) to below-ground litter
 
             if(root_inc_alloc.lt.0.)then
                 
                 leaf_inc_alloc = bminc_in_ind
+                ! print*, 'negative rot inc, leaf==', leaf_inc_alloc
 
                 root_inc_alloc = (leaf_in_ind + leaf_inc_alloc) / ltor - root_in_ind
-                
-                !!!####ATENÇÃO AQUI!! TUDO VAI PRA LITEIRA????
-                print*, 'root inc alloc negative', root_inc_alloc
-                print*, 'ATTENTION PLEASE!!!!!!!!!!!'
+                ! print*, 'negative root inc, root_inc_alloc',root_inc_alloc!, root_in_ind
+                !!!####ATENÇÃO################# AQUI!! TUDO VAI PRA LITEIRA????
+                ! print*, 'root inc alloc negative', root_inc_alloc
+                ! print*, 'ATTENTION PLEASE!!!!!!!!!!!'
             endif 
         else 
 
@@ -520,16 +524,23 @@ contains
             
             leaf_inc_alloc = (root_in_ind + root_inc_alloc) * ltor - leaf_in_ind  !from eqn (9)
 
-            print*, 'negative alloc to leaf mass', root_inc_alloc, leaf_inc_alloc
-            print*, 'ATTENTION PLEASE!!!!!!!!!!!'
+            ! print*, 'negative alloc to leaf mass,leaf alloc ===', leaf_inc_alloc
+            ! print*, 'ATTENTION PLEASE!!!!!!!!!!!'
 
         endif
 
-        !Calculate sminc_ind (must be negative)
-        sap_inc_alloc = (leaf_in_ind + leaf_inc_alloc) * sla / klatosa*dwood*height - sap_in_ind
-        print*, 'sap inc - must be negative ==', sap_inc_alloc, sap_in_ind,&
-        (leaf_in_ind + leaf_inc_alloc) * sla / klatosa*dwood*height
-    
+        ! if(z.eq.1)then
+        ! !Calculate sminc_ind (must be negative)
+        !     sap_inc_alloc = (leaf_in_ind +leaf_inc_alloc) *dwood*height*sla/ klatosa - sap_in_ind !((leaf_in_ind + leaf_inc_alloc) * sla) / klatosa*dwood*height - sap_in_ind
+        !     print*, 'sap inc - must be negative ==', sap_inc_alloc      ! (leaf_in_ind + leaf_inc_alloc) * sla / klatosa*dwood*height
+        ! else
+        sap_inc_alloc = (leaf_in_ind +leaf_inc_alloc) *dwood*height*sla/ klatosa - sap_in_ind !((leaf_in_ind + leaf_inc_alloc) * sla) / klatosa*dwood*height - sap_in_ind
+        ! endif
+        
+        if(sap_inc_alloc.ge.0) sap_inc_alloc = 0.0
+
+
+        heart_inc_alloc = heart_in_ind + abs(sap_inc_alloc)
     end subroutine
 
 end module allocation
