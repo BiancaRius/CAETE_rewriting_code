@@ -2,11 +2,14 @@ import matplotlib.pyplot as plt
 import module_006 as my_module
 
 
-leaf_in = 0.000
-root_in
-sap_in
-dens_in 
-bminc_in
+leaf_in = 0.0001
+root_in = 0.0001
+sap_in = 0.001
+heart_in = 0.5
+dens_in = 10
+bminc_in = 2.5
+
+res = my_module.allocation.alloc(leaf_in, root_in, sap_in, heart_in, bminc_in,dens_in)
 
 
 #assessing a variable:

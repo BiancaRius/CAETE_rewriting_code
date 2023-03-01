@@ -22,9 +22,9 @@ public :: alloc,& !(s) calculates carbon pools output from NPP and carbon from p
 contains
 
     subroutine alloc(leaf_in, root_in, sap_in, heart_in, bminc_in, dens_in,&
-        leaf_out, root_out, sap_out, heart_out,z)
+        leaf_out, root_out, sap_out, heart_out)
 
-        integer(i_4), intent(in)::z 
+        !integer(i_4), intent(in)::z 
         !VARIABLE INPUTS
         !carbon inputs (kgC/m2)
         real(r_8), intent(in) :: leaf_in
@@ -155,7 +155,7 @@ contains
 
             
             call abnormal_alloc(bminc_in_ind, leaf_in_ind, root_in_ind, sap_in_ind, heart_in_ind,height,&
-            leaf_inc_alloc, root_inc_alloc, sap_inc_alloc,heart_inc_alloc, z)
+            leaf_inc_alloc, root_inc_alloc, sap_inc_alloc,heart_inc_alloc)
             
             print*, ' abnormal'
 
@@ -182,7 +182,8 @@ contains
         sap_out  = ((sap_updt - sap_turn)*dens_in)/1.D3
         !!!ATENÇÃO: CORRIGIR HEART_INC_ALLOC PRA ALLOC NORMAL
         heart_out = (((heart_updt - heart_turn) + sap_turn)*dens_in)/1.D3
-        ! print*, 'leaf out', leaf_out, leaf_inc_alloc, leaf_updt, leaf_turn 
+        print*, 'leaf out', leaf_out,'inc', leaf_inc_alloc
+        print*, 'updt', leaf_updt,'turn', leaf_turn 
         !________________
         !sensitivity test
         x = 0
@@ -355,7 +356,8 @@ contains
 
             sap_inc_alloc = bminc_in_ind - leaf_inc_alloc - root_inc_alloc
 
-            print*, 'sap inc alloc', sap_inc_alloc
+            print*, 'sap inc alloc', sap_inc_alloc, leaf_inc_alloc + root_inc_alloc
+
             print*,'bminc_in_ind', bminc_in_ind
             print*, 'leaf_inc_alloc', leaf_inc_alloc
             print*, 'root inc alloc', root_inc_alloc
@@ -510,9 +512,9 @@ contains
     end subroutine
 
     subroutine abnormal_alloc(bminc_in_ind, leaf_in_ind, root_in_ind, sap_in_ind,heart_in_ind, height,&
-        leaf_inc_alloc, root_inc_alloc, sap_inc_alloc, heart_inc_alloc, z)
+        leaf_inc_alloc, root_inc_alloc, sap_inc_alloc, heart_inc_alloc)
         
-        integer(i_4), intent(in) :: z
+        
         real(r_8), intent(in) :: leaf_in_ind 
         real(r_8), intent(in) :: sap_in_ind
         real(r_8), intent(in) :: root_in_ind
@@ -578,10 +580,11 @@ contains
         ! else
         sap_inc_alloc = (leaf_in_ind +leaf_inc_alloc) *dwood*height*sla/ klatosa - sap_in_ind !((leaf_in_ind + leaf_inc_alloc) * sla) / klatosa*dwood*height - sap_in_ind
         ! endif
-        
+        !ATENÇÃO: verify sap inc alloc
         ! if(sap_inc_alloc.ge.0) sap_inc_alloc = 0.0
 
-        ! print*, sap_inc_alloc
+        print*, 'sap inc alloc', sap_inc_alloc, leaf_in_ind, leaf_inc_alloc,&
+         (leaf_in_ind +leaf_inc_alloc) *dwood*height*sla, klatosa, height
 
         heart_inc_alloc = heart_in_ind + abs(sap_inc_alloc)
     end subroutine
@@ -601,11 +604,17 @@ contains
         real(r_8), intent(out) :: sap_turn !amount of C to be lost by turnover
         real(r_8), intent(out) :: heart_turn !amount of C to be lost by turnover
 
-        leaf_turn = leaf_in_ind/leaf_turnover
+        ! leaf_turn = leaf_in_ind/leaf_turnover
 
-        root_turn = root_in_ind/root_turnover
+        ! root_turn = root_in_ind/root_turnover
 
-        sap_turn = sap_in_ind/sap_turnover
+        ! sap_turn = sap_in_ind/sap_turnover
+
+        leaf_turn = leaf_in_ind*leaf_turnover
+
+        root_turn = root_in_ind*root_turnover
+
+        sap_turn = sap_in_ind*sap_turnover
 
         !heartwood incorporates the dead tissue from sapwood
         heart_turn = (heart_in_ind/heart_turnover) + sap_turn

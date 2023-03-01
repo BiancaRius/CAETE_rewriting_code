@@ -39,9 +39,9 @@ module traits
 
     real(r_8), parameter, public :: sla = 0.023!15.36 !0.023
     real(r_8), parameter, public :: dwood = 0.74*1.D6!200.!0.74*1.D3!200. !0.74*1.D6
-    real(r_8), parameter, public :: leaf_turnover = .5 !Sitch et al 2003
-    real(r_8), parameter, public :: root_turnover = 0.5 !Sitch et al 2003
-    real(r_8), parameter, public :: sap_turnover = 0.5!0.05 !Sitch et al 2003
+    real(r_8), parameter, public :: leaf_turnover = 1./2 !Sitch et al 2003
+    real(r_8), parameter, public :: root_turnover = 1./2 !Sitch et al 2003
+    real(r_8), parameter, public :: sap_turnover = 1./20!0.05 !Sitch et al 2003
     real(r_8), parameter, public :: heart_turnover = 3. !Sitch et al 2003
 
 
