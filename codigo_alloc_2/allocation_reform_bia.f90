@@ -172,7 +172,7 @@ contains
         heart_updt= heart_in_ind + heart_inc_alloc
         print*, 'sap updt', sap_updt
 
-        call mortality_turnover(leaf_updt, root_updt, sap_updt, heart_updt,&
+        call mortality_turnover(leaf_in_ind, root_in_ind, sap_in_ind, heart_in_ind,&
             leaf_turn, root_turn, sap_turn, heart_turn)
 
         print*, 'sap_turn', sap_turn    
@@ -275,6 +275,8 @@ contains
         leaf_inc_min = 0.0D0
 
         leaf_inc_min = leaf_req - leaf_in_ind
+
+        print*, 'leaf req leaf in ind', leaf_req, leaf_in_ind
 
     end function leaf_inc_min_calc
 
@@ -577,21 +579,21 @@ contains
         sap_inc_alloc = (leaf_in_ind +leaf_inc_alloc) *dwood*height*sla/ klatosa - sap_in_ind !((leaf_in_ind + leaf_inc_alloc) * sla) / klatosa*dwood*height - sap_in_ind
         ! endif
         
-        if(sap_inc_alloc.ge.0) sap_inc_alloc = 0.0
+        ! if(sap_inc_alloc.ge.0) sap_inc_alloc = 0.0
 
         ! print*, sap_inc_alloc
 
         heart_inc_alloc = heart_in_ind + abs(sap_inc_alloc)
     end subroutine
 
-    subroutine mortality_turnover (leaf_updt, root_updt, sap_updt, heart_updt,&
+    subroutine mortality_turnover (leaf_in_ind, root_in_ind, sap_in_ind, heart_in_ind,&
         leaf_turn, root_turn, sap_turn, heart_turn)
-        
-
-        real(r_8), intent(in) :: leaf_updt
-        real(r_8), intent(in) :: sap_updt
-        real(r_8), intent(in) :: root_updt
-        real(r_8), intent(in) :: heart_updt  
+        !ATENÇÃO: TURNOVER MUST BE WITH IN IND OU UPDT????
+        !ATENÇÃO: 1 ha
+        real(r_8), intent(in) :: leaf_in_ind
+        real(r_8), intent(in) :: sap_in_ind
+        real(r_8), intent(in) :: root_in_ind
+        real(r_8), intent(in) :: heart_in_ind 
 
         !gC/m2
         real(r_8), intent(out) :: leaf_turn !amount of C to be lost by turnover
@@ -599,14 +601,14 @@ contains
         real(r_8), intent(out) :: sap_turn !amount of C to be lost by turnover
         real(r_8), intent(out) :: heart_turn !amount of C to be lost by turnover
 
-        leaf_turn = leaf_updt/leaf_turnover
+        leaf_turn = leaf_in_ind/leaf_turnover
 
-        root_turn = root_updt/root_turnover
+        root_turn = root_in_ind/root_turnover
 
-        sap_turn = sap_updt/sap_turnover
+        sap_turn = sap_in_ind/sap_turnover
 
         !heartwood incorporates the dead tissue from sapwood
-        heart_turn = (heart_updt/heart_turnover) + sap_turn
+        heart_turn = (heart_in_ind/heart_turnover) + sap_turn
         
 
 
