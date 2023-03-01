@@ -37,7 +37,13 @@ module traits
     use types
     implicit none
 
-    real(r_8), parameter, public :: sla = 15.36 !0.023
-    real(r_8), parameter, public :: dwood = 200.!0.74*1.D3!200. !0.74*1.D6
+    real(r_8), parameter, public :: sla = 0.023!15.36 !0.023
+    real(r_8), parameter, public :: dwood = 0.74*1.D6!200.!0.74*1.D3!200. !0.74*1.D6
+    real(r_8), parameter, public :: leaf_turnover = 0.8 !Sitch et al 2003
+    real(r_8), parameter, public :: root_turnover = 0.8 !Sitch et al 2003
+    real(r_8), parameter, public :: sap_turnover = 0.8!0.05 !Sitch et al 2003
+    real(r_8), parameter, public :: heart_turnover = 3. !Sitch et al 2003
+
+
 
 end module traits

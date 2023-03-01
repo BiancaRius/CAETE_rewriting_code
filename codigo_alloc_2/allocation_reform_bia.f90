@@ -16,7 +16,8 @@ public :: alloc,& !(s) calculates carbon pools output from NPP and carbon from p
           normal_alloc, &
           abnormal_alloc,&
           root_bisec_calc,&
-          positive_leaf_inc_min
+          positive_leaf_inc_min,&
+          mortality_turnover
 
 contains
 
@@ -74,6 +75,19 @@ contains
         real(r_8) :: sap_inc_alloc
         real(r_8) :: heart_inc_alloc
 
+        !variable update that goes to turnover mortality (compartment_in_ind + compartiment_inc_alloc)
+        real(r_8) :: leaf_updt
+        real(r_8) :: root_updt
+        real(r_8) :: sap_updt
+        real(r_8) :: heart_updt
+
+        !amount of C lost with turnover processes
+        real(r_8) :: leaf_turn
+        real(r_8) :: root_turn
+        real(r_8) :: sap_turn
+        real(r_8) :: heart_turn
+
+
         !initializing variables
         leaf_in_ind = 0.0D0
         root_in_ind = 0.0D0
@@ -96,29 +110,38 @@ contains
         sap_inc_alloc = 0.0D0
         heart_inc_alloc = 0.0D0
 
+        leaf_updt = 0.0D0
+        root_updt = 0.0D0
+        sap_updt = 0.0D0
+        heart_updt = 0.0D0
+
+        leaf_turn = 0.0D0
+        root_turn = 0.0D0
+        sap_turn = 0.0D0
+        heart_turn = 0.0D0
 
         !carbon (gC) in compartments considering the density (ind/m2)
-        leaf_in_ind = (leaf_in/dens_in)!*1.D3
-        root_in_ind = (root_in/dens_in)!*1.D3
-        sap_in_ind = (sap_in/dens_in)!*1.D3 
-        heart_in_ind = (heart_in/dens_in)!*1.D3
+        leaf_in_ind = (leaf_in/dens_in)*1.D3
+        root_in_ind = (root_in/dens_in)*1.D3
+        sap_in_ind = (sap_in/dens_in)*1.D3 
+        heart_in_ind = (heart_in/dens_in)*1.D3
         wood_in_ind = sap_in_ind + heart_in_ind
 
-        bminc_in_ind = (bminc_in/dens_in)!*1D3
+        bminc_in_ind = (bminc_in/dens_in)*1D3
 
         ! call functions to logic
         height = height_calc(wood_in_ind)
-        ! print*, 'height',height
+        ! print*, 'height',height, wood_in_ind, sap_in
 
         leaf_req = leaf_req_calc(sap_in_ind, height)
 
         print*, 'leaf_req',leaf_req
 
         leaf_inc_min = leaf_inc_min_calc(leaf_req, leaf_in_ind)
-        ! print*,'leaf inc min', leaf_inc_min,'leaf_in_ind', leaf_in_ind
+        print*,'leaf inc min', leaf_inc_min,'leaf_in_ind', leaf_in_ind
 
         root_inc_min = root_inc_min_calc(leaf_req, root_in_ind)
-        ! print*, 'root_inc_min', root_inc_min
+        print*, 'root_inc_min', root_inc_min
        
         if (root_inc_min .gt. 0.0D0 .and. leaf_inc_min .gt. 0.0D0 .and. &
                 & (root_inc_min + leaf_inc_min) .lt. bminc_in_ind) then
@@ -141,13 +164,25 @@ contains
          !Increment C compartments - OUTPUT FINAL (kgC/m²)
         !!############PROVISÓRIO
 
-        print*, 'INCREMENT ==', leaf_inc_alloc+sap_inc_alloc+root_inc_alloc
+        ! print*, 'INCREMENT ==', leaf_inc_alloc+sap_inc_alloc+root_inc_alloc
 
-        leaf_out = ((leaf_in_ind + leaf_inc_alloc)*dens_in)!/1.D3
-        root_out = ((root_in_ind + root_inc_alloc)*dens_in)!/1.D3
-        sap_out  = ((sap_in_ind + sap_inc_alloc)*dens_in)!/1.D3
-        heart_out = ((heart_in_ind + heart_inc_alloc)*dens_in)!/1.D3
+        leaf_updt = leaf_in_ind + leaf_inc_alloc
+        root_updt = root_in_ind + root_inc_alloc
+        sap_updt  = sap_in_ind + sap_inc_alloc
+        heart_updt= heart_in_ind + heart_inc_alloc
+        print*, 'sap updt', sap_updt
+
+        call mortality_turnover(leaf_updt, root_updt, sap_updt, heart_updt,&
+            leaf_turn, root_turn, sap_turn, heart_turn)
+
+        print*, 'sap_turn', sap_turn    
         
+        leaf_out = ((leaf_updt - leaf_turn)*dens_in)/1.D3
+        root_out = ((root_updt - root_turn)*dens_in)/1.D3
+        sap_out  = ((sap_updt - sap_turn)*dens_in)/1.D3
+        !!!ATENÇÃO: CORRIGIR HEART_INC_ALLOC PRA ALLOC NORMAL
+        heart_out = (((heart_updt - heart_turn) + sap_turn)*dens_in)/1.D3
+        ! print*, 'leaf out', leaf_out, leaf_inc_alloc, leaf_updt, leaf_turn 
         !________________
         !sensitivity test
         x = 0
@@ -314,9 +349,14 @@ contains
             root_in_ind, bminc_in_ind, dx, x1, x2, leaf_inc_alloc)        
             
             root_inc_alloc = ((leaf_in_ind + leaf_inc_alloc) / ltor) - root_in_ind
-            print*, 'root inc alloc == ',root_inc_alloc
+            ! print*, 'root inc alloc == ',root_inc_alloc
 
             sap_inc_alloc = bminc_in_ind - leaf_inc_alloc - root_inc_alloc
+
+            print*, 'sap inc alloc', sap_inc_alloc
+            print*,'bminc_in_ind', bminc_in_ind
+            print*, 'leaf_inc_alloc', leaf_inc_alloc
+            print*, 'root inc alloc', root_inc_alloc
 
         endif
 
@@ -407,11 +447,11 @@ contains
             if (fmid * fx1 .le. 0. .or. xmid .ge. x2) exit  !sign has changed or we are over the upper bound
 
             if (i > 20) print*, 'first alloc loop flag'
-            if (i > 50) stop 'Too many iterations allocmod'
+            if (i > 100) stop 'Too many iterations allocmod'
       
 
         end do
-
+        print*, i
         !the interval that brackets zero in f(x) becomes the new bounds for the root search
 
         x1 = xmid - dx
@@ -501,7 +541,7 @@ contains
             
             root_inc_alloc = bminc_in_ind - leaf_inc_alloc  !eqn (31)
 
-            print*, 'positive allocleaf, root inc ==', root_inc_alloc
+            ! print*, 'positive allocleaf, root inc ==', root_inc_alloc
 
            !Add killed roots (if any) to below-ground litter
 
@@ -539,8 +579,37 @@ contains
         
         if(sap_inc_alloc.ge.0) sap_inc_alloc = 0.0
 
+        ! print*, sap_inc_alloc
 
         heart_inc_alloc = heart_in_ind + abs(sap_inc_alloc)
+    end subroutine
+
+    subroutine mortality_turnover (leaf_updt, root_updt, sap_updt, heart_updt,&
+        leaf_turn, root_turn, sap_turn, heart_turn)
+        
+
+        real(r_8), intent(in) :: leaf_updt
+        real(r_8), intent(in) :: sap_updt
+        real(r_8), intent(in) :: root_updt
+        real(r_8), intent(in) :: heart_updt  
+
+        !gC/m2
+        real(r_8), intent(out) :: leaf_turn !amount of C to be lost by turnover
+        real(r_8), intent(out) :: root_turn !amount of C to be lost by turnover
+        real(r_8), intent(out) :: sap_turn !amount of C to be lost by turnover
+        real(r_8), intent(out) :: heart_turn !amount of C to be lost by turnover
+
+        leaf_turn = leaf_updt/leaf_turnover
+
+        root_turn = root_updt/root_turnover
+
+        sap_turn = sap_updt/sap_turnover
+
+        !heartwood incorporates the dead tissue from sapwood
+        heart_turn = (heart_updt/heart_turnover) + sap_turn
+        
+
+
     end subroutine
 
 end module allocation

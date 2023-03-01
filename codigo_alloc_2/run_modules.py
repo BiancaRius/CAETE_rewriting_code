@@ -2,10 +2,17 @@ import matplotlib.pyplot as plt
 import module_006 as my_module
 
 
-#assessing a variable:
-t = my_module.traits.sla
+leaf_in = 0.000
+root_in
+sap_in
+dens_in 
+bminc_in
 
-print(t)
+
+#assessing a variable:
+#t = my_module.program2
+
+#print(t)
 
 # #
 
